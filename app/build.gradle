@@ -3,6 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     id 'com.google.firebase.appdistribution'
     id 'com.google.gms.google-services'
+    id("org.jlleitschuh.gradle.ktlint") version "10.2.1"
+    id("io.gitlab.arturbosch.detekt") version "1.19.0"
 }
 
 android {
@@ -18,10 +20,29 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    applicationVariants.all { variant ->
+
+        final uploadTaskName = "appDistributionUpload${variant.name.capitalize()}"
+        final uploadTask = project.tasks.findByName(uploadTaskName)
+
+        if (uploadTask != null) {
+            uploadTask.doFirst {
+                setEnvInMemory('GOOGLE_APPLICATION_CREDENTIALS', "1//0gPeZm4GeSYcCCgYIARAAGBASNwF-L9IrGwEgheeWTQ9MxQqQJhnxANSFBOA_SeL__ZmeOiIvPviLmLjJhGU7vMngb_fl-eja4gk")
+            }
+        }
+    }
     buildTypes {
+        debug{
+            firebaseAppDistribution {
+                groups = "Test"
+            }
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            firebaseAppDistribution {
+                groups = "Test"
+            }
         }
     }
     compileOptions {
@@ -31,6 +52,17 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+    viewBinding{
+        enabled true
+    }
+}
+
+private static void setEnvInMemory(String name, String val) {
+    // There is no way to dynamically set environment params, but we can update it in memory
+    final env = System.getenv()
+    final field = env.getClass().getDeclaredField("m")
+    field.setAccessible(true)
+    field.get(env).put(name, val)
 }
 
 dependencies {
